@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Sprite Sheeter</title>
+		<style type="text/css">
+
+			/* GLOBAL */
+			a { color: #6d6e71; }
+			body { background: #ffffff; color: #000; font: 100% Arial, Helvetica, sans-serif; margin: 0; padding: 0;}
+			em { font-style: italic; }
+			h1 { padding-bottom: 1.2em; }
+			h2 { font-size: 1.4em; padding-bottom: .65em; }
+			h3 { font-size: 1.3em; padding-bottom: .4em; }
+			p { padding-bottom: 1.2em; line-height: 1.4em; }
+			small { font-size: .75em; }
+			strong { font-weight: bold; color: #000000}
+			sup { font-size: .8em; vertical-align: top; }
+			ul, ol { margin-left: 20px; padding-bottom: 1.2em; line-height: 1.4em;}
+			ul li, ol li { padding-bottom: .2em; padding-left: 2em;}
+			ol {list-style-type: decimal;}
+
+			/* SITE */
+   			.wrapper{
+   				width: 1280px;
+   				height: 730px;
+   				margin: 0 auto;
+   				background: #cdedfe;
+   				position: relative;
+   				border: 1px black solid;
+   			}
+
+   			.ground{
+   				width: 100%;
+   				height: 80px;
+   				background: url("images/ducks_tile.jpg") top left;
+   				bottom: 0;
+   				position: absolute;
+   			}
+
+   			.instructions{
+   				font: Arial;
+   				color: #999999;
+   				font-size: 20px;
+   				float: right;
+   				padding: 20px;
+   				opacity: .5;	
+   			}
+
+   			.hero{
+   				width: 128px;
+   				height: 128px;
+   				margin-top: 522px;
+   				overflow: hidden;
+   				/* border: 10px solid orange; */
+   				position: absolute;
+   			}
+  		</style>
+	</head>
+	<body>
+		<div class='wrapper'>
+			<div class="instructions"><b>Rotate:</b> A, S<br><b>Move:</b> Up, Down, Left, Right</div>
+			<div class="hero"><img src="images/sprites.png"></div>
+			<div class="ground"></div>			
+		</div>
+
+		<script src="js/jquery.1.10.1.js" type="text/javascript"></script>
+		<script src="js/sprite_sheeter.js" type="text/javascript"></script>
+		<script type="text/javascript">
+
+			//global
+			var hero = $(".hero");
+			var heroWidth = parseInt(hero.css("width")) + ( parseInt(hero.css("border") )*2 );
+			var heroHeight = parseInt(hero.css("height")) + ( parseInt(hero.css("border") )*2 );
+			var sprites = $(".hero img");
+
+			//rotation
+			var lagOffset = 1;
+			var curRotation = 0;
+			var rotation = 0;
+			var frameRate = 30;
+			var rotationLeftPressed = false;
+			var rotationRightPressed = false;
+			var rotationLeftStillPressed = false;
+			var rotationRightStillPressed = false;
+			var rotVel = 0;
+			var accel = 1;
+			var deprecationVel = .5;
+			var maxVel = 20;
+
+			//arrow keys
+			var moveLeftPressed = false;
+			var moveRightPressed = false;
+			var moveUpPressed = false;
+			var moveDownPressed = false;
+			var moveLeftStillPressed = false;
+			var moveRightStillPressed = false;
+			var moveUpStillPressed = false;
+			var moveDownStillPressed = false;
+            var move_accel = 1;
+            var xVel = 0;
+            var yVel = 0;
+            var maxMoveVel = 20;
+            var moveDeprecationVel = .5;
+            var curMarginLeft = parseInt( hero.css('margin-left') );
+            var curMarginTop = parseInt( hero.css('margin-top') );
+
+            //animations
+            var leanForwardAnimationRow = 9;
+            var swimBackAnimationRow = 11;
+
+			//sprite
+			var row = 0;
+
+			//listeners
+			$( window ).keydown(function( event ) {
+  				console.log(curRotation);
+
+  				//rotation keys (A, S)
+  				if(event.keyCode == '65'){
+  					rotationLeftPressed = true;
+  					rotationRightPressed = false;
+  					rotationLeftStillPressed = true;
+  				}else if(event.keyCode == '83'){
+  					rotationLeftPressed = false;
+  					rotationRightPressed = true;
+					rotationRightStillPressed = true;
+  				}
+  				//arrow keys (left, right, up, down)
+  				else if(event.keyCode == '37'){
+  					moveLeftPressed = true;
+  					moveRightPressed = false;
+  					moveUpPressed = false;
+  					moveDownPressed = false;
+  					moveLeftStillPressed = true;
+
+  					if(curRotation < 43 || curRotation > 300){
+  						playAnimation(swimBackAnimationRow, 2, 1, playAnimationComplete);
+  					}else{
+  						playAnimation(leanForwardAnimationRow, 2, 1, playAnimationComplete);
+  					}
+  				}else if(event.keyCode == '39'){
+  					moveLeftPressed = false;
+  					moveRightPressed = true;
+  					moveUpPressed = false;
+  					moveDownPressed = false;
+  					moveRightStillPressed = true;
+  					
+  					if(curRotation > 145 && curRotation < 215){
+  						playAnimation(swimBackAnimationRow, 2, 1, playAnimationComplete);
+  					}else{
+  						playAnimation(leanForwardAnimationRow, 2, 1, playAnimationComplete);
+  					}
+  				}else if(event.keyCode == '38'){
+  					moveLeftPressed = false;
+  					moveRightPressed = false;
+  					moveUpPressed = true;
+  					moveDownPressed = false;
+  					moveUpStillPressed = true;
+  					
+  					if(curRotation > 40 && curRotation < 135){
+  						playAnimation(swimBackAnimationRow, 2, 1, playAnimationComplete);
+  					}else{
+  						playAnimation(leanForwardAnimationRow, 2, 1, playAnimationComplete);
+  					}
+  				}else if(event.keyCode == '40'){
+  					moveLeftPressed = false;
+  					moveRightPressed = false;
+  					moveUpPressed = false;
+  					moveDownPressed = true;
+  					moveDownStillPressed = true;
+
+  					if(curRotation > 220 && curRotation < 320){
+  						playAnimation(swimBackAnimationRow, 2, 1, playAnimationComplete);
+  					}else{
+  						playAnimation(leanForwardAnimationRow, 2, 1, playAnimationComplete);
+  					}
+  				}
+
+  				//console.log(event.keyCode);
+			});
+
+			$( window ).keyup(function( event ) {
+				//rotation
+				if(event.keyCode == '65'){
+					rotationLeftStillPressed = false;
+				}else if(event.keyCode == '83'){
+					rotationRightStillPressed = false;
+  				}
+
+  				if (rotationLeftStillPressed){
+  					rotationLeftPressed = true;
+  				}else{
+  					rotationLeftPressed = false;
+  				} 
+
+  				if(rotationRightStillPressed){
+  					rotationRightPressed = true;
+  				}else{
+  					rotationRightPressed = false;
+  				}
+
+  				//arrow keys
+  				if(event.keyCode == '37'){
+					moveLeftStillPressed = false;
+				}else if(event.keyCode == '39'){
+					moveRightStillPressed = false;
+  				}else if(event.keyCode == '38'){
+					moveUpStillPressed = false;
+  				}else if(event.keyCode == '40'){
+					moveDownStillPressed = false;
+  				}
+
+  				if (moveLeftStillPressed){
+  					moveLeftPressed = true;
+  				}else{
+  					moveLeftPressed = false;
+  				} 
+
+  				if (moveRightStillPressed){
+  					moveRightPressed = true;
+  				}else{
+  					moveRightPressed = false;
+  				}
+
+  				if (moveUpStillPressed){
+  					moveUpPressed = true;
+  				}else{
+  					moveUpPressed = false;
+  				}
+
+  				if (moveDownStillPressed){
+  					moveDownPressed = true;
+  				}else{
+  					moveDownPressed = false;
+  				}
+			});
+
+			//document ready
+			$(function(){
+				startEnterFrame();
+
+				playAnimation(8, 3, 1, idleAnimationComplete);
+			});
+
+
+
+			//enter frame
+			function startEnterFrame(){
+
+				//var lastFrame = 0;
+
+				//ticker
+				var interval = setInterval(function(){					
+
+					//time passed between frames
+					/*if(!lastFrame){
+						lastFrame = $.now();
+					}
+
+					var timeLapsed = $.now() -lastFrame;
+					lastFrame = $.now();*/
+
+					//rotation
+	                if(rotationLeftPressed){
+	                	rotVel -= accel;
+	                	if(rotVel < -maxVel){
+	                		rotVel = -maxVel;
+	                	}
+	                }else if(rotationRightPressed){
+	                	rotVel += accel;
+	                	if(rotVel > maxVel){
+	                		rotVel = maxVel;
+	                	}
+	                }else{
+	                	//not hitting a button
+	                	if(rotVel > 0){
+	                		rotVel -= deprecationVel;
+
+	                		if(rotVel < 0){
+	                			rotVel = 0;
+	                		}
+	                	}else if(rotVel < 0){
+	                		rotVel += deprecationVel;
+
+	                		if(rotVel > 0){
+	                			rotVel = 0;
+	                		}
+	                	}
+	                }
+
+	                curRotation += rotVel;
+	                curRotation = (curRotation + 360) % 360;
+					rotation = 'rotate('+curRotation+'deg)';
+	                
+
+	                //arrow keys
+	                if(moveLeftPressed || moveLeftStillPressed){
+	                	xVel -= move_accel;
+
+	                	if(xVel <= -maxMoveVel){
+	                		xVel = -maxMoveVel;
+	                	}
+	                }else if(moveRightPressed || moveRightStillPressed){
+	                	xVel += move_accel;
+
+		                if(xVel > maxMoveVel){
+	                		xVel = maxMoveVel;
+	                	}
+         	       }
+
+	                if(moveUpPressed || moveUpStillPressed){
+	                	yVel -= move_accel;
+	                	if(yVel <= -maxMoveVel){
+	                		yVel = -maxMoveVel;
+	                	}
+	                }else if(moveDownPressed || moveDownStillPressed){
+	                	yVel += move_accel;
+	                	if(yVel > maxMoveVel){
+	                		yVel = maxMoveVel;
+	                	}
+	                }
+
+	                if(!moveLeftPressed && !moveRightPressed && !moveUpPressed && !moveDownPressed &&
+	                	!moveLeftStillPressed && !moveRightStillPressed && !moveUpStillPressed && !moveDownStillPressed){
+	                	//not hitting a button
+	                	if(xVel > 0){
+	                		xVel -= moveDeprecationVel;
+
+	                		if(xVel < 0){
+	                			xVel = 0;
+	                		}
+	                	}else if(xVel < 0){
+	                		xVel += moveDeprecationVel;
+
+	                		if(xVel > 0){
+	                			xVel = 0;
+	                		}
+	                	}
+
+	                	if(yVel > 0){
+	                		yVel -= moveDeprecationVel;
+
+	                		if(yVel < 0){
+	                			yVel = 0;
+	                		}
+	                	}else if(yVel < 0){
+	                		yVel += moveDeprecationVel;
+
+	                		if(yVel > 0){
+	                			yVel = 0;
+	                		}
+	                	}
+
+	                	//if(yVel == 0 && xVel == 0){
+	                		playAnimation(8, 3, 1, idleAnimationComplete);
+	                	//}
+	                }
+
+	                curMarginLeft += xVel;
+	                curMarginTop += yVel;
+
+	                checkBoundaries();
+
+					//refresh frame
+	                hero.css({
+						transform:rotation,
+						'-ms-transform':rotation, /* IE 9 */
+						'-webkit-transform':rotation, /* Safari and Chrome */
+						'margin-left':curMarginLeft,
+						'margin-top':curMarginTop
+					});
+	            }, frameRate);
+			}
+
+			//checks to see if the hero is out of the box
+			function checkBoundaries(){
+				var wrapper = $(".wrapper");
+				var wrapperWidth = parseInt(wrapper.css("width"));
+				var wrapperHeight = parseInt(wrapper.css("height"));
+				var groundHeight = parseInt($(".ground").css("height"));
+
+				//console.log(curMarginLeft, wrapper.css("width"));
+				if(curMarginLeft >= wrapperWidth - heroWidth){
+					curMarginLeft = wrapperWidth - heroWidth;
+				}else if(curMarginLeft <= 0){
+					curMarginLeft = 0;
+				}
+
+				if(curMarginTop >= wrapperHeight - heroHeight - groundHeight){
+					curMarginTop = wrapperHeight - heroHeight - groundHeight;
+				}else if(curMarginTop <= 0){
+					curMarginTop = 0;
+				}
+			}
+
+			var animationIsPlaying = false;
+			var animationRow = -1;
+			
+			function playAnimation(rowNumber, startFrame, repeats, complete){
+
+				if(!animationIsPlaying || animationRow != rowNumber){
+					animationIsPlaying = true;
+					animationRow = rowNumber;
+
+					row = rowNumber;
+
+					sprites.playFrames({
+						maxFrames:16, 
+						frameWidth:heroWidth, 
+						startFrame:startFrame,
+						frameSpeed:50, 
+						topMarginStart:-heroHeight*row, 
+						timesToRepeat:repeats, 
+						complete:complete});	
+				}
+			}
+
+			function playAnimationComplete(){
+				animationIsPlaying = false;
+			}
+
+			function idleAnimationComplete(){
+				animationIsPlaying = false;
+				playAnimation(8, 3, 1, idleAnimationComplete);
+			}
+
+			//plays the sprite animations in order and repeats them
+			/*function playAllAnimations(){
+				sprites.playFrames({
+					maxFrames:16, 
+					frameWidth:heroWidth, 
+					startFrame:1,
+					frameSpeed:50, 
+					topMarginStart:-heroHeight*row, 
+					timesToRepeat:1, 
+					complete:playAllAnimationsComplete});
+			}*/
+
+			//sprite animation complete
+			/*function playAllAnimationsComplete(){
+            	if(row < 16-1){
+					row++;
+            	}else{
+            		row = 0;
+            	} 
+
+            	playAllAnimations();
+			}*/
+		</script>
+	</body>
+</html>
